@@ -243,22 +243,49 @@ def detect_coco_cat_streamlit(image_array, cat_detector, coco_classifier):
             "message": "Found cats, but none are orange! 🐱"
         }
     
-    # Stage 3: Coco classification
-    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
-        cv2.imwrite(tmp_file.name, image_array)
-        coco_results = coco_classifier(tmp_file.name)
-        os.unlink(tmp_file.name)
-    
+    # Stage 3: Coco classification - crop each orange cat and test
     is_coco = False
     max_conf = 0.0
+    best_cat_info = None
     
-    for res in coco_results:
-        if res.probs is not None:
-            cls_id = int(res.probs.top1)
-            conf = float(res.probs.top1conf)
-            if conf > max_conf:
-                max_conf = conf
-                is_coco = (cls_id == 0)
+    for idx, cat in enumerate(orange_cats):
+        x1, y1, x2, y2 = cat["bbox"]
+        
+        # Crop the cat region
+        cat_crop = image_array[y1:y2, x1:x2]
+        
+        # Skip if crop is too small
+        if cat_crop.shape[0] < 20 or cat_crop.shape[1] < 20:
+            continue
+            
+        # Save crop temporarily and run detection
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+            cv2.imwrite(tmp_file.name, cat_crop)
+            crop_results = coco_classifier(tmp_file.name)
+            
+            # Process results from detection model (not classification)
+            for res in crop_results:
+                # Handle classification model output (if res.probs exists)
+                if res.probs is not None:
+                    cls_id = int(res.probs.top1)
+                    conf = float(res.probs.top1conf)
+                    if conf > max_conf:
+                        max_conf = conf
+                        is_coco = (cls_id == 0)
+                        best_cat_info = f"Classification: Cat {idx+1}, confidence {conf:.3f}"
+                
+                # Handle detection model output (if res.boxes exists)
+                elif res.boxes is not None:
+                    for box in res.boxes:
+                        cls_id = int(box.cls)
+                        conf = float(box.conf)
+                        if conf > max_conf:
+                            max_conf = conf
+                            is_coco = (cls_id == 0)  # 0 = Coco, 1 = not Coco
+                            best_cat_info = f"Detection: Cat {idx+1}, confidence {conf:.3f}"
+            
+            # Clean up temp file
+            os.unlink(tmp_file.name)
     
     return {
         "result": "is_coco" if is_coco else "not_coco",
@@ -266,6 +293,7 @@ def detect_coco_cat_streamlit(image_array, cat_detector, coco_classifier):
         "total_cats": len(cats),
         "orange_cats": len(orange_cats),
         "detection_method": "closeup_fallback" if fallback_used else "standard",
+        "best_detection": best_cat_info,
         "message": f"{'🎉 This is Coco!' if is_coco else '😸 This is an orange cat, but not Coco!'}"
     }
 
@@ -420,6 +448,13 @@ def main():
                         st.write(f"🍊 **Orange cats:** {result.get('orange_cats', 0)}")
                         st.write(f"🔧 **Detection method:** {result.get('detection_method', 'standard')}")
                         st.write(f"📈 **Confidence score:** {result['confidence']:.3f}")
+                        if result.get('best_detection'):
+                            st.write(f"🎯 **Best detection:** {result['best_detection']}")
+                        
+                        # Debug info for troubleshooting
+                        st.write("🔍 **Debug Info:**")
+                        st.write(f"- Model type: {'Classification' if 'Classification' in str(result.get('best_detection', '')) else 'Detection'}")
+                        st.write(f"- Processing: Crops each orange cat individually")
                     
                 except Exception as e:
                     st.error(f"❌ Oops! Something went wrong: {str(e)}")
