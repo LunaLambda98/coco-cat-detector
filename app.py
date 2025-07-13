@@ -213,24 +213,12 @@ def detect_coco_cat_streamlit(image_array, cat_detector, coco_classifier):
     cats = detect_cats(image_array, cat_detector)
     
     # Fallback for close-ups
-    if len(cats) == 0:
-        fake_cat = {
-            "bbox": [0, 0, w, h],
-            "confidence": 0.5,
-            "detection_config": "closeup_fallback"
+     if len(cats) == 0:
+        return {
+            "result": "no_cat",
+            "confidence": 0.0,
+            "message": "No cats detected in the image! 😿"
         }
-        
-        if is_orange_color_in_region(image_array, fake_cat["bbox"]):
-            cats = [fake_cat]
-            fallback_used = True
-        else:
-            return {
-                "result": "no_cat",
-                "confidence": 0.0,
-                "message": "No cats detected in the image! 😿"
-            }
-    else:
-        fallback_used = False
     
     # Stage 2: Orange filter
     orange_cats = [c for c in cats if is_orange_color_in_region(image_array, c["bbox"])]
