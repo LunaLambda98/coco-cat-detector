@@ -430,6 +430,20 @@ def main():
                     else:
                         st.warning(f"😿 {result['message']}")
                     
+                    # Show image with bounding boxes if cats were detected
+                    if result.get('total_cats', 0) > 0:
+                        # Get cats for drawing (we need to re-run detection to get cat info)
+                        detected_cats = detect_cats(image_array, cat_detector)
+                        
+                        # Draw bounding boxes
+                        annotated_image = draw_cute_results(image_array, detected_cats, result)
+                        
+                        # Convert back to RGB for display
+                        annotated_image_rgb = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)
+                        
+                        st.markdown("### 🎯 Detection Results with Bounding Boxes")
+                        st.image(annotated_image_rgb, caption="Detected Cats with Bounding Boxes", use_column_width=True)
+                    
                     # Show detailed info
                     with st.expander("📊 Detailed Detection Info"):
                         st.write(f"🐱 **Total cats found:** {result.get('total_cats', 0)}")
