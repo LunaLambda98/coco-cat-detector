@@ -120,8 +120,8 @@ def load_models():
     """Load YOLO models with caching for better performance."""
     try:
         cat_detector = YOLO("yolov8n.pt")
-        # Note: Update this path to your actual model location
-        coco_classifier = YOLO("best.pt")  # You'll need to upload this file
+         
+        coco_classifier = YOLO("best.pt") 
         return cat_detector, coco_classifier
     except Exception as e:
         st.error(f"Error loading models: {str(e)}")
