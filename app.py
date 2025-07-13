@@ -292,20 +292,35 @@ def draw_cute_results(image_array, cats, result):
     for cat in cats:
         x1, y1, x2, y2 = cat["bbox"]
         
-        # Draw cute rounded rectangle
-        color = (255, 165, 0) if result["result"] in ["is_coco", "not_coco"] else (100, 100, 255)
+        # Make sure coordinates are valid
+        x1, y1, x2, y2 = max(0, x1), max(0, y1), min(img_copy.shape[1], x2), min(img_copy.shape[0], y2)
+        
+        # Draw cute rectangle
+        color = (0, 165, 255) if result["result"] in ["is_coco", "not_coco"] else (255, 100, 100)  # BGR format
         thickness = 3
         
         # Draw rectangle
         cv2.rectangle(img_copy, (x1, y1), (x2, y2), color, thickness)
         
         # Add cute label
-        label = "🐱 Orange Cat" if result["result"] in ["is_coco", "not_coco"] else "🐱 Cat"
-        label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
+        label = "Orange Cat" if result["result"] in ["is_coco", "not_coco"] else "Cat"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.7
+        font_thickness = 2
         
-        # Draw label background
-        cv2.rectangle(img_copy, (x1, y1-30), (x1 + label_size[0] + 10, y1), color, -1)
-        cv2.putText(img_copy, label, (x1 + 5, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        # Get text size for background
+        (text_width, text_height), baseline = cv2.getTextSize(label, font, font_scale, font_thickness)
+        
+        # Draw label background rectangle
+        label_y = max(y1 - 10, text_height + 10)
+        cv2.rectangle(img_copy, (x1, label_y - text_height - 10), (x1 + text_width + 10, label_y + baseline), color, -1)
+        
+        # Draw text
+        cv2.putText(img_copy, label, (x1 + 5, label_y - 5), font, font_scale, (255, 255, 255), font_thickness)
+        
+        # Add confidence score
+        conf_text = f"Conf: {cat.get('confidence', 0):.2f}"
+        cv2.putText(img_copy, conf_text, (x1 + 5, y2 - 10), font, 0.5, color, 1)
     
     return img_copy
 
@@ -374,7 +389,7 @@ def main():
         with col1:
             st.markdown("### 🖼️ Your Uploaded Photo")
             image = Image.open(uploaded_file)
-            st.image(image, caption="Original Image", use_column_width=True)
+            st.image(image, caption="Original Image", use_container_width=True)
             
             # Convert to opencv format
             image_array = np.array(image)
@@ -435,14 +450,17 @@ def main():
                         # Get cats for drawing (we need to re-run detection to get cat info)
                         detected_cats = detect_cats(image_array, cat_detector)
                         
-                        # Draw bounding boxes
-                        annotated_image = draw_cute_results(image_array, detected_cats, result)
-                        
-                        # Convert back to RGB for display
-                        annotated_image_rgb = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)
-                        
-                        st.markdown("### 🎯 Detection Results with Bounding Boxes")
-                        st.image(annotated_image_rgb, caption="Detected Cats with Bounding Boxes", use_column_width=True)
+                        if detected_cats:  # Make sure we have cats to draw
+                            # Draw bounding boxes
+                            annotated_image = draw_cute_results(image_array, detected_cats, result)
+                            
+                            # Convert back to RGB for display
+                            annotated_image_rgb = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)
+                            
+                            st.markdown("### 🎯 Detection Results with Bounding Boxes")
+                            st.image(annotated_image_rgb, caption="Detected Cats with Bounding Boxes", use_container_width=True)
+                        else:
+                            st.info("Cats were detected but bounding box drawing failed.")
                     
                     # Show detailed info
                     with st.expander("📊 Detailed Detection Info"):
