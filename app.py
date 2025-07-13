@@ -213,7 +213,7 @@ def detect_coco_cat_streamlit(image_array, cat_detector, coco_classifier):
     cats = detect_cats(image_array, cat_detector)
     
     # Fallback for close-ups
-     if len(cats) == 0:
+    if len(cats) == 0:
         return {
             "result": "no_cat",
             "confidence": 0.0,
