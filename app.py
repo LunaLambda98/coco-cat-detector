@@ -129,7 +129,7 @@ def load_models():
 
 # ============================== Detection Functions ==============================
 def detect_cats(image_array, cat_detector, conf_thres=0.5):
-    """Enhanced cat detection with close-up optimization."""
+    """Enhanced cat detection with multi-scale optimization."""
     h, w = image_array.shape[:2]
     
     # Save image temporarily for YOLO processing
@@ -169,7 +169,7 @@ def detect_cats(image_array, cat_detector, conf_thres=0.5):
         if cats:
             break
     
-    # Clean up
+    # Clean up temporary file
     try:
         os.unlink(temp_path)
     except:
@@ -206,13 +206,13 @@ def is_orange_color_in_region(image, bbox, orange_ratio_thres=0.35):
     return ratio > orange_ratio_thres
 
 def detect_coco_cat_streamlit(image_array, cat_detector, coco_classifier):
-    """Main detection pipeline for Streamlit."""
+    """Main detection pipeline for Streamlit application."""
     h, w = image_array.shape[:2]
     
     # Stage 1: Cat detection
     cats = detect_cats(image_array, cat_detector)
     
-    # Fallback for close-ups
+    # Return immediately if no cats are detected
     if len(cats) == 0:
         return {
             "result": "no_cat",
@@ -220,7 +220,7 @@ def detect_coco_cat_streamlit(image_array, cat_detector, coco_classifier):
             "message": "No cats detected in the image! 😿"
         }
     
-    # Stage 2: Orange filter
+    # Stage 2: Orange color filter
     orange_cats = [c for c in cats if is_orange_color_in_region(image_array, c["bbox"])]
     
     if len(orange_cats) == 0:
@@ -246,12 +246,12 @@ def detect_coco_cat_streamlit(image_array, cat_detector, coco_classifier):
         if cat_crop.shape[0] < 20 or cat_crop.shape[1] < 20:
             continue
             
-        # Save crop temporarily and run detection
+        # Save crop temporarily and run classification
         with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
             cv2.imwrite(tmp_file.name, cat_crop)
             crop_results = coco_classifier(tmp_file.name)
             
-            # Process results from detection model (not classification)
+            # Process results from the model
             for res in crop_results:
                 # Handle classification model output (if res.probs exists)
                 if res.probs is not None:
@@ -280,13 +280,13 @@ def detect_coco_cat_streamlit(image_array, cat_detector, coco_classifier):
         "confidence": max_conf,
         "total_cats": len(cats),
         "orange_cats": len(orange_cats),
-        "detection_method": "closeup_fallback" if fallback_used else "standard",
+        "detection_method": "standard",  # No fallback mode, standard detection only
         "best_detection": best_cat_info,
         "message": f"{'🎉 This is Coco!' if is_coco else '😸 This is an orange cat, but not Coco!'}"
     }
 
 def draw_cute_results(image_array, cats, result):
-    """Draw cute bounding boxes and annotations."""
+    """Draw cute bounding boxes and annotations on the image."""
     img_copy = image_array.copy()
     
     for cat in cats:
@@ -314,7 +314,7 @@ def main():
     # Header
     st.markdown('<h1 class="main-header">🐱 Coco Cat Detection System 🍊</h1>', unsafe_allow_html=True)
     
-    # Cute welcome message
+    # Welcome message
     st.markdown("""
     <div class="cute-card">
         <h3 style="text-align: center; color: #ff9800;">🌟 Welcome to Coco's Smart Detection System! 🌟</h3>
@@ -336,7 +336,7 @@ def main():
     
     st.success("✅ Models loaded successfully! Ready to detect Coco! 🎉")
     
-    # Sidebar with cute info
+    # Sidebar with information
     with st.sidebar:
         st.markdown("## 🐱 About Coco Detection")
         st.markdown("""
@@ -354,7 +354,7 @@ def main():
             <strong>📋 Supported formats:</strong><br>
             • JPG, JPEG, PNG<br>
             • Any size (I'll optimize!)<br>
-            • Close-ups work too! 📸
+            • Clear photos work best! 📸
         </div>
         """, unsafe_allow_html=True)
     
@@ -385,7 +385,7 @@ def main():
             st.markdown("### 🔍 Detection Results")
             
             if st.button("🚀 Start Coco Detection!", key="detect_button"):
-                # Progress bar with cute messages
+                # Progress bar with messages
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 
@@ -443,12 +443,13 @@ def main():
                         st.write("🔍 **Debug Info:**")
                         st.write(f"- Model type: {'Classification' if 'Classification' in str(result.get('best_detection', '')) else 'Detection'}")
                         st.write(f"- Processing: Crops each orange cat individually")
+                        st.write(f"- Fallback mode: Disabled (more accurate)")
                     
                 except Exception as e:
                     st.error(f"❌ Oops! Something went wrong: {str(e)}")
                     st.info("💡 Try with a different image or check your model files.")
     
-    # Footer with cute tips
+    # Footer with tips
     st.markdown("---")
     st.markdown("""
     <div class="cute-card">
@@ -459,8 +460,8 @@ def main():
                 <p>Clear, well-lit photos work best!</p>
             </div>
             <div style="text-align: center; margin: 1rem;">
-                <h5>🐱 Cat Position</h5>
-                <p>Full body or face close-ups both work!</p>
+                <h5>🐱 Cat Visibility</h5>
+                <p>Make sure the cat is clearly visible!</p>
             </div>
             <div style="text-align: center; margin: 1rem;">
                 <h5>🍊 Orange Cats</h5>
