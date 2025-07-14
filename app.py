@@ -285,44 +285,8 @@ def detect_coco_cat_streamlit(image_array, cat_detector, coco_classifier):
         "message": f"{'🎉 This is Coco!' if is_coco else '😸 This is an orange cat, but not Coco!'}"
     }
 
-def draw_cute_results(image_array, cats, result):
-    """Draw cute bounding boxes and annotations on the image."""
-    img_copy = image_array.copy()
-    
-    for cat in cats:
-        x1, y1, x2, y2 = cat["bbox"]
-        
-        # Make sure coordinates are valid
-        x1, y1, x2, y2 = max(0, x1), max(0, y1), min(img_copy.shape[1], x2), min(img_copy.shape[0], y2)
-        
-        # Draw cute rectangle
-        color = (0, 165, 255) if result["result"] in ["is_coco", "not_coco"] else (255, 100, 100)  # BGR format
-        thickness = 3
-        
-        # Draw rectangle
-        cv2.rectangle(img_copy, (x1, y1), (x2, y2), color, thickness)
-        
-        # Add cute label
-        label = "Orange Cat" if result["result"] in ["is_coco", "not_coco"] else "Cat"
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 0.7
-        font_thickness = 2
-        
-        # Get text size for background
-        (text_width, text_height), baseline = cv2.getTextSize(label, font, font_scale, font_thickness)
-        
-        # Draw label background rectangle
-        label_y = max(y1 - 10, text_height + 10)
-        cv2.rectangle(img_copy, (x1, label_y - text_height - 10), (x1 + text_width + 10, label_y + baseline), color, -1)
-        
-        # Draw text
-        cv2.putText(img_copy, label, (x1 + 5, label_y - 5), font, font_scale, (255, 255, 255), font_thickness)
-        
-        # Add confidence score
-        conf_text = f"Conf: {cat.get('confidence', 0):.2f}"
-        cv2.putText(img_copy, conf_text, (x1 + 5, y2 - 10), font, 0.5, color, 1)
-    
-    return img_copy
+
+   
 
 # ============================== Streamlit App ==============================
 def main():
