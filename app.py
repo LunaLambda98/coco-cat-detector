@@ -445,23 +445,6 @@ def main():
                     else:
                         st.warning(f"😿 {result['message']}")
                     
-                    # Show image with bounding boxes if cats were detected
-                    if result.get('total_cats', 0) > 0:
-                        # Get cats for drawing (we need to re-run detection to get cat info)
-                        detected_cats = detect_cats(image_array, cat_detector)
-                        
-                        if detected_cats:  # Make sure we have cats to draw
-                            # Draw bounding boxes
-                            annotated_image = draw_cute_results(image_array, detected_cats, result)
-                            
-                            # Convert back to RGB for display
-                            annotated_image_rgb = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)
-                            
-                            st.markdown("### 🎯 Detection Results with Bounding Boxes")
-                            st.image(annotated_image_rgb, caption="Detected Cats with Bounding Boxes", use_container_width=True)
-                        else:
-                            st.info("Cats were detected but bounding box drawing failed.")
-                    
                     # Show detailed info
                     with st.expander("📊 Detailed Detection Info"):
                         st.write(f"🐱 **Total cats found:** {result.get('total_cats', 0)}")
@@ -475,7 +458,7 @@ def main():
                         st.write("🔍 **Debug Info:**")
                         st.write(f"- Model type: {'Classification' if 'Classification' in str(result.get('best_detection', '')) else 'Detection'}")
                         st.write(f"- Processing: Crops each orange cat individually")
-                        st.write(f"- Fallback mode: Disabled (more accurate)")
+                        st.write(f"- Detection mode: Standard (no fallback)")
                     
                 except Exception as e:
                     st.error(f"❌ Oops! Something went wrong: {str(e)}")
